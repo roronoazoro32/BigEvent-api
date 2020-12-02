@@ -77,6 +77,41 @@ router.post('/reguser', async (req,res) => {
   }
 })
 
+// 登录接口
+router.post('/login', async (req, res) => {
+  // 1.获取表单数据
+  var params = req.body
+   // 对密码再次加密 判断前端传回的密码加密后的密码如果跟数据库里加密后的密码一样
+   params.password = utility.md5(params.password)
+  // 2.查询数据验证合法性
+  var sql = 'select id from myuser where username = ? and password = ?' //意思是根据id在表单中查询用户名跟密码
+  // 3.判断结果并返回
+  let ret = await db.operateDb(sql,[params.username,params.password]) //调用封装数据库模块,第一个表示操作,第二个是要查询的条件
+  // 3.1验证合法,需要针对该用户生成一个token,返回给客户端
+  if (ret && ret.length > 0) {
+     // 需要导入jsonwebtoken验证机制包
+      // jwt.sign方法的参数
+      // 参数一: 表示在token中携带的数据,这个数据一般携带用户的唯一标识,这个数据可以反解
+      // 参数二: 加密token的干扰字符串(盐),干扰迷惑性不能轻易反解
+      // 参数三:token的配置信息,比如设置token的有效期
+    console.log(ret[1]);
+    let token = jwt.sign({ id: ret[0].id, username: params.username }, 'bigevent', { expiresIn: '2 days' })
+    res.json({
+      status: 0,
+      message: '登录成功',
+      token:'Bearer ' + token
+    })
+  }
+  //
+  else {
+    //不合法
+    res.json({
+      status: 0,
+      message:'用户名或者密码错误'
+    })
+  }
+ 
+})
 
 //导出路由
 module.exports = router
